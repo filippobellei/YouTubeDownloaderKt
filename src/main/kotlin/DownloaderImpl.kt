@@ -1,45 +1,43 @@
-import io.ktor.client.*
-import io.ktor.client.request.request
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.client.statement.request
-import io.ktor.http.*
-import io.ktor.util.toMap
-import org.schabi.newpipe.extractor.downloader.*
-import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.schabi.newpipe.extractor.downloader.Downloader
+import org.schabi.newpipe.extractor.downloader.Request
+import org.schabi.newpipe.extractor.downloader.Response
+import java.io.IOException
 
 class DownloaderImpl : Downloader() {
-    private val client: HttpClient = HttpClient()
+
+    private val client = OkHttpClient()
 
     override fun execute(request: Request): Response {
-        val httpMethod = HttpMethod.parse(request.httpMethod())
-        val url = request.url()
-        val headers = request.headers()
-        val requestBody = request.dataToSend()
+        val requestBody: RequestBody? = request.dataToSend()?.toRequestBody()
 
-        val response = runBlocking {
-            client.request(url) {
-                method = httpMethod
-                headers {
-                    headers.forEach { (headersName, headerValueList) ->
-                        appendAll(headersName, headerValueList)
-                    }
-                }
-                if (requestBody != null)
-                    setBody(requestBody)
+        val requestBuilder = okhttp3.Request.Builder()
+            .url(request.url())
+            .method(request.httpMethod(), requestBody)
+
+        request.headers().forEach { (name, values) ->
+            requestBuilder.removeHeader(name)
+            values.forEach { value ->
+                requestBuilder.addHeader(name, value)
             }
         }
 
-        val responseBodyToReturn = runBlocking {
-            response.bodyAsText()
-        }
+        client.newCall(requestBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("HTTP error code: ${response.code}")
+            }
 
-        return Response(
-            response.status.value,
-            response.status.description,
-            response.headers.toMap(),
-            responseBodyToReturn,
-            response.request.url.toString()
-        )
+            val responseBody = response.body?.use { it.string() }.orEmpty()
+
+            return Response(
+                response.code,
+                response.message,
+                response.headers.toMultimap(),
+                responseBody,
+                response.request.url.toString()
+            )
+        }
     }
 }

@@ -1,45 +1,49 @@
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.*
-import io.ktor.client.statement.bodyAsBytes
-import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
-import kotlinx.coroutines.runBlocking
-import kotlinx.io.asSink
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
 import org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeStreamLinkHandlerFactory
-import java.io.File
+import java.io.*
 
 fun main() {
-    val downloader = DownloaderImpl()
-    NewPipe.init(downloader)
+    NewPipe.init(DownloaderImpl())
 
-    val youtubeStreamLinkHandlerFactory = YoutubeStreamLinkHandlerFactory.getInstance()
-    val linkHandler = youtubeStreamLinkHandlerFactory.fromUrl("https://www.youtube.com/watch?v=mkggXE5e2yk")
+    val videoUrl = "https://www.youtube.com/watch?v=mkggXE5e2yk"
+    val videoStreamUrl = extractVideoStreamUrl(videoUrl)
+
+    if (videoStreamUrl != null)
+        downloadVideo(videoStreamUrl)
+}
+
+fun extractVideoStreamUrl(youtubeUrl: String): String? {
+    val linkHandler = YoutubeStreamLinkHandlerFactory
+        .getInstance()
+        .fromUrl(youtubeUrl)
 
     val youtubeService = YoutubeService(0)
-    val youtubeStreamExtractor = YoutubeStreamExtractor(youtubeService, linkHandler)
+    val extractor = YoutubeStreamExtractor(youtubeService, linkHandler)
 
-    youtubeStreamExtractor.fetchPage()
+    extractor.fetchPage()
 
-    val contentUrl = youtubeStreamExtractor.videoStreams[0].content
-
-    downloadVideo(contentUrl)
+    return extractor.videoStreams.firstOrNull()?.content
 }
 
 fun downloadVideo(url: String) {
-    val client = HttpClient() {
-        install(HttpTimeout) {
-            requestTimeoutMillis = 200000
+    val client = OkHttpClient()
+    val request = Request.Builder()
+        .url(url)
+        .build()
+
+    client.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) {
+            throw IOException("HTTP error code: ${response.code}")
         }
-    }
 
-    val content = runBlocking {
-        client.get(url).bodyAsBytes()
+        response.body?.byteStream()?.use { inputStream ->
+            File("youtubeVideo.mp4").outputStream().use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        } ?: throw IOException("Response body is null")
     }
-
-    File("youtubeVideo.mp4").writeBytes(content)
 }

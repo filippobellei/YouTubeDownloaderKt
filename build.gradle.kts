@@ -9,8 +9,7 @@ application {
 
 dependencies {
     implementation("com.github.TeamNewPipe:NewPipeExtractor:0.24.6")
-    implementation("io.ktor:ktor-client-core:3.1.3")
-    implementation("io.ktor:ktor-client-cio:3.1.3")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 repositories {
