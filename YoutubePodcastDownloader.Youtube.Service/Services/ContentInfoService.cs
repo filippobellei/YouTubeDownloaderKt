@@ -6,7 +6,7 @@ using YoutubePodcastDownloader.Youtube.Service.Models.GetContentInfoResponse;
 
 namespace YoutubePodcastDownloader.Youtube.Service.Services;
 
-public class ContentInfoService(HttpClient _client)
+public class ContentInfoService(HttpClient _httpClient)
 {
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
@@ -15,7 +15,7 @@ public class ContentInfoService(HttpClient _client)
 
     private async ValueTask<string> ResolveVisitorDataAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _client.GetAsync("https://www.youtube.com/sw.js_data", cancellationToken);
+        using var response = await _httpClient.GetAsync("https://www.youtube.com/sw.js_data", cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -59,7 +59,7 @@ public class ContentInfoService(HttpClient _client)
         var jsonRequest = JsonSerializer.Serialize(request, _jsonSerializerOptions);
         using var requestContent = new StringContent(jsonRequest);
 
-        using var response = await _client.PostAsync(
+        using var response = await _httpClient.PostAsync(
             "https://www.youtube.com/youtubei/v1/player",
             requestContent,
             cancellationToken

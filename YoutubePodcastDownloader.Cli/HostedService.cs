@@ -4,7 +4,7 @@ namespace YoutubePodcastDownloader.Cli;
 
 public class HostedService(
     ContentInfoService _youtubeService,
-    HttpClient _client,
+    HttpClient _httpClient,
     IHostApplicationLifetime _lifetime
 ) : IHostedService
 {
@@ -25,7 +25,7 @@ public class HostedService(
                 .ToArray();
             var fileName = new string(title) + ".opus";
 
-            using var response = await _client.GetAsync(url, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             await using var responseContent = await response.Content.ReadAsStreamAsync(cancellationToken);
