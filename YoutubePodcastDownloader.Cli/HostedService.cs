@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using YoutubePodcastDownloader.Youtube.Service.Services;
 
 namespace YoutubePodcastDownloader.Cli;
@@ -6,7 +5,6 @@ namespace YoutubePodcastDownloader.Cli;
 public class HostedService(
     ContentInfoService _youtubeService,
     HttpClient _client,
-    ILogger<HostedService> _logger,
     IHostApplicationLifetime _lifetime
 ) : IHostedService
 {
@@ -19,6 +17,7 @@ public class HostedService(
             var audios = getVideoResponse?.StreamingData?.AdaptiveFormats?
                 .Where(x => x!.MimeType!.StartsWith("audio/webm") && !x.IsDrc);
             var url = audios?.FirstOrDefault()?.Url;
+            url += "&range=0-9898988";
 
             var unsafeTitle = getVideoResponse?.VideoDetails?.Title;
             var title = unsafeTitle?
@@ -26,11 +25,7 @@ public class HostedService(
                 .ToArray();
             var fileName = new string(title) + ".opus";
 
-            var stopWatch = new Stopwatch();
-
-            stopWatch.Start();
             using var response = await _client.GetAsync(url, cancellationToken);
-            stopWatch.Stop();
             response.EnsureSuccessStatusCode();
 
             await using var responseContent = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -38,8 +33,6 @@ public class HostedService(
 
             await responseContent.CopyToAsync(fileStream, cancellationToken);
             await fileStream.FlushAsync(cancellationToken);
-
-            _logger.LogInformation("Downloaded in {ElapsedTime}", stopWatch.Elapsed);
         }
         catch (OperationCanceledException) { }
         finally { _lifetime.StopApplication(); }
