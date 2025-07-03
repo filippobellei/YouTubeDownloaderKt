@@ -5,6 +5,7 @@ var builder = Host.CreateApplicationBuilder();
 
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ContentInfoService>();
+builder.Services.AddSingleton<RetrieveContentService>();
 builder.Services.AddHostedService<HostedService>();
 
 var host = builder.Build();

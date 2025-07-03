@@ -13,16 +13,21 @@ public class ContentInfoService(HttpClient _httpClient)
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private async ValueTask<string> ResolveVisitorDataAsync(CancellationToken cancellationToken = default)
+    private async Task<string> ResolveVisitorDataAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync("https://www.youtube.com/sw.js_data", cancellationToken);
+        using var response = await _httpClient
+            .GetAsync("https://www.youtube.com/sw.js_data", cancellationToken)
+            .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (jsonString.StartsWith(")]}'"))
-            jsonString = jsonString[4..];
+        var content = await response.Content
+            .ReadAsStringAsync(cancellationToken)
+            .ConfigureAwait(false);
 
-        var json = JsonNode.Parse(jsonString);
+        if (content.StartsWith(")]}'"))
+            content = content[4..];
+
+        var json = JsonNode.Parse(content);
 
         var visitorData = json?[0]?[2]?[0]?[0]?[13]?.ToString();
 
@@ -32,12 +37,13 @@ public class ContentInfoService(HttpClient _httpClient)
         return visitorData;
     }
 
-    public async ValueTask<GetContentInfoResponse> GetContentInfoAsync(
+    public async Task<GetContentInfoResponse> GetContentInfoAsync(
         string videoId,
         CancellationToken cancellationToken = default
     )
     {
-        var visitorData = await ResolveVisitorDataAsync(cancellationToken);
+        var visitorData = await ResolveVisitorDataAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         var request = new GetContentInfoRequest
         {
@@ -59,21 +65,28 @@ public class ContentInfoService(HttpClient _httpClient)
         var jsonRequest = JsonSerializer.Serialize(request, _jsonSerializerOptions);
         using var requestContent = new StringContent(jsonRequest);
 
-        using var response = await _httpClient.PostAsync(
-            "https://www.youtube.com/youtubei/v1/player",
-            requestContent,
-            cancellationToken
-        );
+        using var response = await _httpClient
+            .PostAsync(
+                "https://www.youtube.com/youtubei/v1/player",
+                requestContent,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadFromJsonAsync<GetContentInfoResponse>(cancellationToken);
+        var responseContent = await response.Content
+            .ReadFromJsonAsync<GetContentInfoResponse>(cancellationToken)
+            .ConfigureAwait(false);
 
-        var playabilityStatus = responseContent?.PlayabilityStatus?.Status;
+        var playabilityStatus = responseContent?.PlayabilityStatus.Status;
         var details = responseContent?.VideoDetails;
 
         if (string.Equals(playabilityStatus, "error", StringComparison.OrdinalIgnoreCase) || details is null)
             throw new Exception($"Video '{videoId}' is not available");
 
-        return responseContent!;
+        responseContent!.StreamingData.AdaptiveFormats = responseContent.StreamingData.AdaptiveFormats
+            .Where(x => x.MimeType.StartsWith("audio/webm") && !x.IsDrc);
+
+        return responseContent;
     }
 }

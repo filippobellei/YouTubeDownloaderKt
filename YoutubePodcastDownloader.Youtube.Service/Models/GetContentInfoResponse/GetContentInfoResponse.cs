@@ -4,7 +4,7 @@ namespace YoutubePodcastDownloader.Youtube.Service.Models.GetContentInfoResponse
 
 public class GetContentInfoResponse
 {
-    public PlayabilityStatus? PlayabilityStatus { get; set; }
-    public StreamingData? StreamingData { get; set; }
-    public VideoDetails? VideoDetails { get; set; }
+    public required PlayabilityStatus PlayabilityStatus { get; set; }
+    public required StreamingData StreamingData { get; set; }
+    public required VideoDetails VideoDetails { get; set; }
 }

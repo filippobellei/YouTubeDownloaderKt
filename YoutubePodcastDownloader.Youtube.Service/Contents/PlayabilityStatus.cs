@@ -2,5 +2,5 @@ namespace YoutubePodcastDownloader.Youtube.Service.Contents;
 
 public class PlayabilityStatus
 {
-    public string? Status { get; set; }
+    public required string Status { get; set; }
 }
