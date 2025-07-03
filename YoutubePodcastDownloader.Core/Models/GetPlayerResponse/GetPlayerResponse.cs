@@ -1,8 +1,6 @@
-using YoutubePodcastDownloader.Youtube.Service.Contents;
+namespace YoutubePodcastDownloader.Core.Models.GetPlayerResponse;
 
-namespace YoutubePodcastDownloader.Youtube.Service.Models.GetContentInfoResponse;
-
-public class GetContentInfoResponse
+public class GetPlayerResponse
 {
     public required PlayabilityStatus PlayabilityStatus { get; set; }
     public required StreamingData StreamingData { get; set; }

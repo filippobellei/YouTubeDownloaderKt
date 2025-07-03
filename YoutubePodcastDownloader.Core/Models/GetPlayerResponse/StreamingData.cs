@@ -1,4 +1,4 @@
-namespace YoutubePodcastDownloader.Youtube.Service.Contents;
+namespace YoutubePodcastDownloader.Core.Models.GetPlayerResponse;
 
 public class StreamingData
 {

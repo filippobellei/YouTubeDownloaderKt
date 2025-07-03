@@ -1,11 +1,9 @@
 using YoutubePodcastDownloader.Cli;
-using YoutubePodcastDownloader.Youtube.Service.Services;
+using YoutubePodcastDownloader.Core;
 
 var builder = Host.CreateApplicationBuilder();
 
-builder.Services.AddHttpClient();
-builder.Services.AddSingleton<ContentInfoService>();
-builder.Services.AddSingleton<RetrieveContentService>();
+builder.Services.AddYoutubePodcastDownloader();
 builder.Services.AddHostedService<HostedService>();
 
 var host = builder.Build();

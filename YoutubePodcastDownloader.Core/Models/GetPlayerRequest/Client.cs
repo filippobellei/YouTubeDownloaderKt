@@ -1,4 +1,4 @@
-namespace YoutubePodcastDownloader.Youtube.Service.Models.GetContentInfoRequest;
+namespace YoutubePodcastDownloader.Core.Models.GetPlayerRequest;
 
 public class Client
 {
